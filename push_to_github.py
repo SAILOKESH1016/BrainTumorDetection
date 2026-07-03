@@ -16,7 +16,8 @@ def make_request(url, method="GET", headers=None, data=None):
         
     req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(req) as response:
+        # Added timeout=30 to prevent blocking indefinitely
+        with urllib.request.urlopen(req, timeout=30) as response:
             return response.status, json.loads(response.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
         err_msg = e.read().decode('utf-8')
@@ -36,7 +37,7 @@ def push_project(username, pat):
     }
     
     # 1. Create GitHub Repository
-    print(f"Creating repository '{repo_name}' on GitHub for user '{username}'...")
+    print(f"Creating repository '{repo_name}' on GitHub for user '{username}'...", flush=True)
     create_url = "https://api.github.com/user/repos"
     create_data = {
         "name": repo_name,
@@ -47,11 +48,11 @@ def push_project(username, pat):
     
     status, res = make_request(create_url, method="POST", headers=headers, data=create_data)
     if status == 201:
-        print("Repository created successfully!")
+        print("Repository created successfully!", flush=True)
     elif status == 422 and "already exists" in str(res):
-        print("Repository already exists on your GitHub account. Uploading files to the existing repo...")
+        print("Repository already exists on your GitHub account. Uploading files to the existing repo...", flush=True)
     else:
-        print(f"Failed to create repository: Status {status}, Error: {res.get('message')}")
+        print(f"Failed to create repository: Status {status}, Error: {res.get('message')}", flush=True)
         return False
         
     # 2. Get list of files to upload
@@ -65,19 +66,17 @@ def push_project(username, pat):
         for f in files:
             if f in exclude_files:
                 continue
-            # Skip caches, Jupyter checkpoints, etc.
             path = os.path.join(root, f)
             rel_path = os.path.relpath(path, '.')
-            # Format path for GitHub (forward slashes)
             git_path = rel_path.replace('\\', '/')
             files_to_upload.append((rel_path, git_path))
             
-    print(f"Found {len(files_to_upload)} files to upload (excluding large datasets and non-champion weights).")
+    print(f"Found {len(files_to_upload)} files to upload (excluding large datasets and non-champion weights).", flush=True)
     
     # 3. Upload each file using GitHub Contents API
     success_count = 0
     for local_path, git_path in files_to_upload:
-        print(f"Uploading {git_path}...")
+        print(f"Uploading {git_path}...", flush=True)
         try:
             with open(local_path, 'rb') as f:
                 content_bytes = f.read()
@@ -102,21 +101,21 @@ def push_project(username, pat):
             if status in (200, 201):
                 success_count += 1
             else:
-                print(f"  Failed to upload {git_path}: {res.get('message')}")
+                print(f"  Failed to upload {git_path}: {res.get('message')}", flush=True)
         except Exception as e:
-            print(f"  Error processing {git_path}: {e}")
+            print(f"  Error processing {git_path}: {e}", flush=True)
             
-    print(f"\nUpload complete! Successfully uploaded {success_count}/{len(files_to_upload)} files.")
+    print(f"\nUpload complete! Successfully uploaded {success_count}/{len(files_to_upload)} files.", flush=True)
     return success_count > 0
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python push_to_github.py <pat> [username]")
+        print("Usage: python push_to_github.py <pat> [username]", flush=True)
         sys.exit(1)
         
     if len(sys.argv) == 2:
         pat = sys.argv[1]
-        print("Username not specified. Fetching authenticated user from GitHub API using the token...")
+        print("Username not specified. Fetching authenticated user from GitHub API using the token...", flush=True)
         headers = {
             "Authorization": f"token {pat}",
             "Accept": "application/vnd.github.v3+json",
@@ -125,9 +124,9 @@ if __name__ == "__main__":
         status, user_res = make_request("https://api.github.com/user", method="GET", headers=headers)
         if status == 200 and "login" in user_res:
             username = user_res["login"]
-            print(f"Authenticated as GitHub user: {username}")
+            print(f"Authenticated as GitHub user: {username}", flush=True)
         else:
-            print(f"Failed to fetch GitHub username using the token. Status {status}, Error: {user_res.get('message')}")
+            print(f"Failed to fetch GitHub username using the token. Status {status}, Error: {user_res.get('message')}", flush=True)
             sys.exit(1)
     else:
         username = sys.argv[1]
@@ -136,9 +135,9 @@ if __name__ == "__main__":
     success = push_project(username, pat)
     if success:
         github_link = f"https://github.com/{username}/BrainTumorDetection"
-        print(f"\nRepository Link: {github_link}")
+        print(f"\nRepository Link: {github_link}", flush=True)
         # Run resume update
-        print("Updating resumes...")
+        print("Updating resumes...", flush=True)
         os.system(f'.venv\\Scripts\\python.exe update_resume.py "{github_link}"')
     else:
         sys.exit(1)
