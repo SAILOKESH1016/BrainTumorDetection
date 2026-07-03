@@ -1,0 +1,30 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Cache & Build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Datasets & Local Storage
+archive/
+data/
+
+# Model Files & Saved Weights
+models/*.h5
+models/*.pkl
+models/*.keras
+results/*.png
+results/*.csv
+
+# System Logs & Caches
+.vscode/
+.idea/
+.DS_Store
+*.log
